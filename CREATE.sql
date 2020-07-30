@@ -1,4 +1,5 @@
 drop table if exists Players;
+drop table if exists Sessions;
 drop table if exists Users;
 drop table if exists Persons;
 drop table if exists ShirtTypes;
@@ -97,6 +98,18 @@ create table if not exists Players (
     constraint FK_Players_Persons foreign key (personId) references Persons(id),
     constraint FK_Players_Teams foreign key (teamId) references Teams(id),
     constraint CK_Players_rankId check (rankId >= 0 and rankId <= 2)
+);
+
+create table if not exists Sessions (
+	id int auto_increment,
+    created timestamp default NOW() not null,
+    userId int,
+    sessionId nvarchar(128) not null,
+    active bit default 1 not null,
+    
+    constraint PK_Sessions primary key (id),
+    constraint FK_Sessions_Users foreign key (userId) references Users(id),
+    constraint UN_Sessions unique (userId, sessionId)
 );
     
     

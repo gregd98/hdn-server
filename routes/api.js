@@ -33,7 +33,23 @@ router.post('/login', cors(reactDevCors), (req, res) => {
     } else {
       succeed = false;
     }
-    res.status(200).json({ succeed });
+    const obj = { succeed };
+    if (succeed) {
+      db.insertSession(result.id, req.sessionID).then(() => {
+        obj.userData = {
+          id: result.id,
+          username: result.username,
+          firstName: result.firstName,
+          lastName: result.lastName,
+        };
+        res.status(200).json(obj);
+      }).catch((error) => {
+        console.log(error.message);
+        res.status(500).json({ succeed: false });
+      });
+    } else {
+      res.status(200).json({ succeed: false });
+    }
   }).catch((error) => {
     console.log(error.message);
     res.status(500).json({ succeed: false });
