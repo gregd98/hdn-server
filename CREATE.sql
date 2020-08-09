@@ -1,3 +1,7 @@
+drop database if exists hdn;
+create database if not exists hdn;
+use hdn;
+
 drop table if exists Players;
 drop table if exists Sessions;
 drop table if exists Users;
@@ -5,6 +9,8 @@ drop table if exists Persons;
 drop table if exists ShirtTypes;
 drop table if exists ShirtSizes;
 drop table if exists Posts;
+drop table if exists RolePermissions;
+drop table if exists Permissions;
 drop table if exists Roles;
 drop table if exists Teams;
 
@@ -12,7 +18,7 @@ create table if not exists Persons (
 	id int auto_increment,
     firstName nvarchar(32) not null,
     lastName nvarchar(32) not null,
-    phone nvarchar(12) not null,
+    phone nvarchar(10) not null,
     email nvarchar(320),
 	CNP nvarchar(13) not null,
     
@@ -56,9 +62,25 @@ create table if not exists Roles (
     constraint UN_Roles_name unique (name)
 );
 
-create table if not exists Users (
+create table if not exists Permissions (
 	id int auto_increment,
-    personId int,
+    name nvarchar(16) not null,
+    
+    constraint PK_Permissions primary key (id),
+    constraint UN_Permissions_name unique (name)
+);
+
+create table if not exists RolePermissions (
+	roleId int,
+    permissionId int,
+	
+    constraint PK_RolePermissions primary key (roleId, permissionId),
+    constraint FK_RolePermissions_Roles foreign key (roleId) references Roles(id),
+    constraint FK_RolePermissions_Permissions foreign key (permissionId) references Permissions(id)
+);
+
+create table if not exists Users (
+	id int,
     username nvarchar(32) not null,
     pwdHash nvarchar(128) not null,
     pwdSalt nvarchar(128) not null,
@@ -69,7 +91,7 @@ create table if not exists Users (
     roleId int,
     
     constraint PK_Users primary key (id),
-    constraint FK_Users_Persons foreign key (personId) references Persons(id),
+    constraint FK_Users_Persons foreign key (id) references Persons(id),
     constraint UN_Users_username unique (username),
     constraint CH_Users_username check (CHAR_LENGTH(username) >= 3),
     constraint CH_Users_pwdHash check (CHAR_LENGTH(pwdHash) = 128),
@@ -105,11 +127,51 @@ create table if not exists Sessions (
     created timestamp default NOW() not null,
     userId int,
     sessionId nvarchar(128) not null,
-    active bit default 1 not null,
+    active bit default 1 not null default 1,
     
     constraint PK_Sessions primary key (id),
     constraint FK_Sessions_Users foreign key (userId) references Users(id),
     constraint UN_Sessions unique (userId, sessionId)
 );
+
+create table if not exists Games (
+	id int auto_increment,
+    name nvarchar(32) not null,
+    description nvarchar(1024),
+    notes nvarchar(1024),
+    ownerId int,
+    playerCount int,
+    maxScore int,
+    startTime datetime,
+    endTime datetime,
+    active bit not null default 1,
+	
+    constraint PK_Games primary key (id),
+    constraint UN_Games_name unique (name),
+    constraint FK_Games_Users foreign key (ownerId) references Users(id),
+    constraint CH_Games_playerCount check (playerCount > 0 and playerCount <= 16),
+    constraint CH_Games_maxScore check (maxScore > 0),
+    constraint CH_Games_time check ((startTime is null and endTime is null) or (startTime is not null and endTime is not null and startTime < endTime))
+);
+
+create table if not exists Scores (
+	gameId int,
+    teamId int,
+    score int not null,
+    fairplay bit not null,
     
+    constraint PK_Scores primary key (gameId, teamId),
+    constraint FK_Scores_Games foreign key (gameId) references Games(id),
+    constraint FK_Scores_Teams foreign key (teamId) references Teams(id),
+    constraint CH_Scores_score check (score >= 0)
+);
+
+create table if not exists Assignments (
+	gameId int,
+    userId int,
+    
+    constraint PK_Assignments primary key (gameId, userId),
+    constraint FK_Assignments_Games foreign key (gameId) references Games(id),
+    constraint FK_Assignments_Teams foreign key (userId) references Users(id)
+);
     
