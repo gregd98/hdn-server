@@ -8,12 +8,12 @@ const router = express.Router();
 router.use(auth.authorize(1));
 
 router.get('/', (req, res) => {
-  rest.restGetCall(db.findAllTeams, req, res);
+  rest.restGetCall(() => db.findAllTeams(req.session.eventId), req, res);
 });
 
 router.get('/:id', (req, res) => {
   const { id } = req.params;
-  db.findTeamById(id).then((team) => {
+  db.findTeamById(id, req.session.eventId).then((team) => {
     if (team) {
       const payload = { team };
       db.findPlayersByTeamId(id).then((players) => {

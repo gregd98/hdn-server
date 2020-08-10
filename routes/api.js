@@ -109,18 +109,20 @@ router.post('/signup', (req, res) => {
     console.log(validation);
     res.status(200).json({ succeed: false, inputErrors: validation });
   } else {
+    // TODO itt elore kell tudjuk az eventId-t
+    const eventId = Number.parseInt(data.regCode[0], 10);
     db.checkExistence('username', 'Users', data.username, true, {
       username: 'This username is already taken.',
     })
       .then(() => db.checkExistence('email', 'Persons', data.email, true, {
         email: 'This email address is already registered.',
-      }))
+      }, eventId))
       .then(() => db.checkExistence('phone', 'Persons', data.phone, true, {
         phone: 'This phone number is already registered.',
-      }))
+      }, eventId))
       .then(() => db.checkExistence('cnp', 'Persons', data.cnp, true, {
         cnp: 'This CNP is already registered.',
-      }))
+      }, eventId))
       .then(() => db.checkExistence('id', 'ShirtTypes', data.shirtType, false, {
         shirtType: 'Invalid shirt type.',
       }))
@@ -135,6 +137,8 @@ router.post('/signup', (req, res) => {
           phone: data.phone,
           email: data.email,
           cnp: data.cnp,
+          // TODO itt is majd a jo eventId-t kell visszaadni
+          eventId,
           username: data.username,
           pwdHash: data.passwordData.hash,
           pwdSalt: data.passwordData.salt,
@@ -175,7 +179,7 @@ router.get('/posts',  auth.authorize(), (req, res) => {
 });
 
 router.get('/users', auth.authorize(), (req, res) => {
-  rest.restGetCall(db.findAllUsers, req, res);
+  rest.restGetCall(() => db.findAllUsers(req.session.eventId), req, res);
 });
 
 const mySleep = () => {
@@ -185,7 +189,7 @@ const mySleep = () => {
 };
 
 router.get('/leaderContacts', auth.authorize(1), (req, res) => {
-  rest.restGetCall(db.findAllLeaderContacts, req, res);
+  rest.restGetCall(() => db.findAllLeaderContacts(req.session.eventId), req, res);
 });
 
 router.use('/teams', teamsRouter);

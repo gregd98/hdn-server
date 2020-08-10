@@ -8,12 +8,12 @@ const router = express.Router();
 router.use(auth.authorize(1));
 
 router.get('/', (req, res) => {
-  rest.restGetCall(db.findAllPlayers, req, res);
+  rest.restGetCall(() => db.findAllPlayers(req.session.eventId), req, res);
 });
 
 router.get('/:id', (req, res) => {
   const { id } = req.params;
-  db.findPlayerById(id).then((player) => {
+  db.findPlayerById(id, req.session.eventId).then((player) => {
     if (player) {
       res.status(200).json({ succeed: true, payload: player });
     } else {

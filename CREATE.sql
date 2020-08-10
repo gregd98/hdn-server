@@ -14,6 +14,18 @@ drop table if exists Permissions;
 drop table if exists Roles;
 drop table if exists Teams;
 
+create table if not exists Events (
+	id int auto_increment,
+    name nvarchar(32) not null,
+    firstDay date not null,
+    lastDay date not null,
+    
+    constraint PK_Events primary key (id),
+    constraint UN_Events_name unique (name),
+    constraint CH_Events_date check (firstDay < lastDay)
+);
+    
+
 create table if not exists Persons (
 	id int auto_increment,
     firstName nvarchar(32) not null,
@@ -21,13 +33,15 @@ create table if not exists Persons (
     phone nvarchar(10) not null,
     email nvarchar(320),
 	CNP nvarchar(13) not null,
+    eventId int not null,
     
     constraint PK_Persons primary key (id),
-    constraint UN_Persons_Phone unique (phone),
+    constraint UN_Persons_Phone unique (phone, eventId),
     constraint CH_Person_Phone check (CHAR_LENGTH(phone) >= 10),
-    constraint UN_Persons_email unique (email),
-    constraint UN_Persons_CNP unique (CNP),
-    constraint CH_Persons_CNP check (CHAR_LENGTH(CNP) = 13)
+    constraint UN_Persons_email unique (email, eventId),
+    constraint UN_Persons_CNP unique (CNP, eventId),
+    constraint CH_Persons_CNP check (CHAR_LENGTH(CNP) = 13),
+    constraint FK_Persons_Events foreign key (eventId) references Events(id)
 );
 
 create table if not exists ShirtTypes (
@@ -71,8 +85,8 @@ create table if not exists Permissions (
 );
 
 create table if not exists RolePermissions (
-	roleId int,
-    permissionId int,
+	roleId int not null,
+    permissionId int not null,
 	
     constraint PK_RolePermissions primary key (roleId, permissionId),
     constraint FK_RolePermissions_Roles foreign key (roleId) references Roles(id),
@@ -80,15 +94,15 @@ create table if not exists RolePermissions (
 );
 
 create table if not exists Users (
-	id int,
+	id int not null,
     username nvarchar(32) not null,
     pwdHash nvarchar(128) not null,
     pwdSalt nvarchar(128) not null,
     pwdIterations int not null,
-    shirtTypeId int,
-    shirtSizeId int,
-    postId int,
-    roleId int,
+    shirtTypeId int not null,
+    shirtSizeId int not null,
+    postId int not null,
+    roleId int not null,
     
     constraint PK_Users primary key (id),
     constraint FK_Users_Persons foreign key (id) references Persons(id),
@@ -106,14 +120,16 @@ create table if not exists Teams (
 	id int auto_increment,
     name nvarchar(32) not null,
     city nvarchar(32) not null,
+    eventId int not null,
     
     constraint PK_Teams primary key (id),
-    constraint UN_Teams_name unique (name)
+    constraint UN_Teams_name unique (name, eventId),
+    constraint FK_Teams_Events foreign key (eventId) references Events(id)
 );
 
 create table if not exists Players (
-	personId int,
-    teamId int,
+	personId int not null,
+    teamId int not null,
     rankId int not null,
     
     constraint PK_Players primary key (personId, teamId),
@@ -125,9 +141,9 @@ create table if not exists Players (
 create table if not exists Sessions (
 	id int auto_increment,
     created timestamp default NOW() not null,
-    userId int,
+    userId int not null,
     sessionId nvarchar(128) not null,
-    active bit default 1 not null default 1,
+    active bit not null default 1,
     
     constraint PK_Sessions primary key (id),
     constraint FK_Sessions_Users foreign key (userId) references Users(id),
@@ -139,24 +155,26 @@ create table if not exists Games (
     name nvarchar(32) not null,
     description nvarchar(1024),
     notes nvarchar(1024),
-    ownerId int,
+    ownerId int not null,
     playerCount int,
     maxScore int,
     startTime datetime,
     endTime datetime,
+    eventId int not null,
     active bit not null default 1,
 	
     constraint PK_Games primary key (id),
-    constraint UN_Games_name unique (name),
+    constraint UN_Games_name unique (name, eventId),
     constraint FK_Games_Users foreign key (ownerId) references Users(id),
     constraint CH_Games_playerCount check (playerCount > 0 and playerCount <= 16),
     constraint CH_Games_maxScore check (maxScore > 0),
-    constraint CH_Games_time check ((startTime is null and endTime is null) or (startTime is not null and endTime is not null and startTime < endTime))
+    constraint CH_Games_time check ((startTime is null and endTime is null) or (startTime is not null and endTime is not null and startTime < endTime)),
+    constraint FK_Games_Events foreign key (eventId) references Events(id)
 );
 
 create table if not exists Scores (
-	gameId int,
-    teamId int,
+	gameId int not null,
+    teamId int not null,
     score int not null,
     fairplay bit not null,
     
@@ -167,8 +185,8 @@ create table if not exists Scores (
 );
 
 create table if not exists Assignments (
-	gameId int,
-    userId int,
+	gameId int not null,
+    userId int not null,
     
     constraint PK_Assignments primary key (gameId, userId),
     constraint FK_Assignments_Games foreign key (gameId) references Games(id),

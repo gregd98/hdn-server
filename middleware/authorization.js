@@ -1,12 +1,14 @@
 const db = require('../db/db');
 
 exports.authorize = (permissionId = 0) => (req, res, next) => {
-  db.findUserIdBySessionId(req.sessionID).then((userId) => {
-    if (userId) {
+  db.findUserIdBySessionId(req.sessionID).then((userData) => {
+    if (userData) {
+      const { userId, eventId } = userData;
       if (permissionId) {
         db.checkUserPermission(userId, permissionId).then((result) => {
           if (result) {
             req.session.userId = userId;
+            req.session.eventId = eventId;
             next();
           } else {
             res.status(401).json({ succeed: false, authenticated: true, message: 'Access denied.' });
@@ -14,6 +16,7 @@ exports.authorize = (permissionId = 0) => (req, res, next) => {
         });
       } else {
         req.session.userId = userId;
+        req.session.eventId = eventId;
         next();
       }
     } else {

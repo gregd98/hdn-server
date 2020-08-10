@@ -78,11 +78,11 @@ exports.removeAllSessions = () => new Promise((resolve, reject) => {
   });
 });
 
-exports.checkExistence = (col, table, value, reverse, onError, conn = pool) => new Promise(
+exports.checkExistence = (col, table, value, reverse, onError, eventId = false) => new Promise(
   (resolve, reject) => {
-    console.log('checkExistence');
-    const query = `select count(*) as count from ${table} where ${col} = ${mysql.escape(value)};`;
-    conn.query(query, (error, result) => {
+    const query = `
+    select count(*) as count from ${table} where ${col} = ${mysql.escape(value)}${eventId ? ` and eventId = ${eventId}` : ''};`;
+    pool.query(query, (error, result) => {
       if (error) {
         reject(error);
       } else if (parseInt(result[0].count, 10) === 0) {
@@ -107,6 +107,7 @@ exports.insertPersonUser = (input) => new Promise((resolve, reject) => {
   ${mysql.escape(input.phone)},
   ${mysql.escape(input.email)},
   ${mysql.escape(input.cnp)},
+  ${mysql.escape(input.eventId)},
   ${mysql.escape(input.username)},
   ${mysql.escape(input.pwdHash)}, 
   ${mysql.escape(input.pwdSalt)},
@@ -158,18 +159,13 @@ exports.findAllPosts = () => new Promise((resolve, reject) => {
   });
 });
 
-exports.findAllUsers = () => new Promise((resolve, reject) => {
-  const query = 'select a.id, b.postId, a.firstName, a.lastName, a.phone, a.email '
-    + 'from Persons as a '
-    + 'join Users as b '
-    + 'on a.id = b.id '
-    + 'order by a.lastName;';
-
+exports.findAllUsers = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllUsers(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
     } else {
-      resolve(result);
+      resolve(result[0]);
     }
   });
 });
@@ -180,7 +176,7 @@ exports.findUserIdBySessionId = (sessionId) => new Promise((resolve, reject) => 
     if (error) {
       reject(error);
     } else if (result[0].length > 0) {
-      resolve(result[0][0].userId);
+      resolve(result[0][0]);
     } else {
       resolve(false);
     }
@@ -200,26 +196,26 @@ exports.checkUserPermission = (userId, permissionId) => new Promise((resolve, re
   });
 });
 
-exports.findAllTeams = () => new Promise((resolve, reject) => {
-  const query = 'select id, name from Teams order by name;';
+exports.findAllTeams = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllTeams(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
     } else {
-      resolve(result);
+      resolve(result[0]);
     }
   });
 });
 
-exports.findAllLeaderContacts = () => new Promise((resolve, reject) => {
-  const query = 'select b.phone, b.email from Players as a join Persons as b on a.personId = b.id where a.rankId > 0;';
+exports.findAllLeaderContacts = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllLeaderContacts(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
     } else {
       const phone = [],
         email = [];
-      result.forEach((contact) => {
+      result[0].forEach((contact) => {
         phone.push(contact.phone);
         email.push(contact.email);
       });
@@ -228,13 +224,13 @@ exports.findAllLeaderContacts = () => new Promise((resolve, reject) => {
   });
 });
 
-exports.findTeamById = (id) => new Promise((resolve, reject) => {
-  const query = `select id, name, city from Teams where id = ${mysql.escape(id)};`;
+exports.findTeamById = (id, eventId) => new Promise((resolve, reject) => {
+  const query = `call findTeamById(${mysql.escape(id)}, ${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
-    } else if (result.length > 0) {
-      resolve(result[0]);
+    } else if (result[0].length > 0) {
+      resolve(result[0][0]);
     } else {
       resolve(false);
     }
@@ -252,8 +248,8 @@ exports.findPlayersByTeamId = (id) => new Promise((resolve, reject) => {
   });
 });
 
-exports.findAllPlayers = () => new Promise((resolve, reject) => {
-  const query = 'call findAllPlayers();';
+exports.findAllPlayers = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllPlayers(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
@@ -263,34 +259,25 @@ exports.findAllPlayers = () => new Promise((resolve, reject) => {
   });
 });
 
-exports.findPlayerById = (id) => new Promise((resolve, reject) => {
-  const query = `
-  select b.id, a.rankId, b.lastName, b.firstName, b.phone, b.email, b.cnp, c.name team 
-  from Players as a
-  join Persons as b
-  on a.personId = b.id
-  join Teams as c
-  on a.teamId = c.id
-  where b.id = ${mysql.escape(id)}
-  order by concat(b.lastName, ' ', b.firstName) asc;`;
+exports.findPlayerById = (id, eventId) => new Promise((resolve, reject) => {
+  const query = `call findPlayerById(${mysql.escape(id)}, ${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
-    } else if (result.length > 0) {
-      resolve(result[0]);
+    } else if (result[0].length > 0) {
+      resolve(result[0][0]);
     } else {
       resolve(false);
     }
   });
 });
 
-exports.findAllGames = () => new Promise((resolve, reject) => {
-  const query = 'call findAllGames();';
+exports.findAllGames = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllGames(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
     if (error) {
       reject(error);
     } else if (result[0].length > 0) {
-      console.log(result[0]);
       const output = [];
       let lastId = 0;
       result[0].forEach((item) => {
