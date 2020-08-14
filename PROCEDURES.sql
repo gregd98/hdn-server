@@ -193,4 +193,25 @@ END //
 
 -- -----------------------------------------------------------------------------
 
+drop procedure if exists findAllDays //
+create procedure findAllDays (
+	in pEventId int
+)
+begin
+	declare firstDate date;
+	declare lastDate date;
+    
+    set firstDate = (select firstDay from Events where id = pEventId);
+    set lastDate = (select lastDay from Events where id = pEventId);
+    
+	select selected_date from 
+	(select adddate(firstDate, t0.i) selected_date from
+	(select 0 i union select 1 union select 2 union select 3 union select 4 union select 5 union select 6 union select 7 union select 8 union select 9) t0) v
+	where selected_date between firstDate and lastDate
+    order by selected_date;
+end //
+
+-- -----------------------------------------------------------------------------
+
+
 DELIMITER ;

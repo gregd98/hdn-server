@@ -321,3 +321,14 @@ exports.findAllGames = (eventId) => new Promise((resolve, reject) => {
     }
   });
 });
+
+exports.findAllDays = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllDays(${mysql.escape(eventId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(result[0].map((day) => day.selected_date));
+    }
+  });
+});

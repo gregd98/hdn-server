@@ -22,7 +22,7 @@ create table if not exists Events (
     
     constraint PK_Events primary key (id),
     constraint UN_Events_name unique (name),
-    constraint CH_Events_date check (firstDay < lastDay)
+    constraint CH_Events_date check (firstDay < lastDay and datediff(lastDay, firstDay) < 10)
 );
     
 

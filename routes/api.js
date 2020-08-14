@@ -192,6 +192,10 @@ router.get('/leaderContacts', auth.authorize(1), (req, res) => {
   rest.restGetCall(() => db.findAllLeaderContacts(req.session.eventId), req, res);
 });
 
+router.get('/days', auth.authorize(), (req, res) => {
+  rest.restGetCall(() => db.findAllDays(req.session.eventId), req, res);
+});
+
 router.use('/teams', teamsRouter);
 router.use('/players', playersRouter);
 router.use('/games', gamesRouter);
