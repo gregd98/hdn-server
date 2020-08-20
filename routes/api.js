@@ -9,7 +9,8 @@ const express = require('express'),
   rest = require('../utils/rest'),
   teamsRouter = require('./teams'),
   playersRouter = require('./players'),
-  gamesRouter = require('./games');
+  gamesRouter = require('./games'),
+  { PERM_TEAMS_DATA_ACCESS } = require('../constants');
 
 const router = express.Router();
 
@@ -146,7 +147,7 @@ router.post('/signup', (req, res) => {
           shirtTypeId: data.shirtType,
           shirtSizeId: data.shirtSize,
           postId: 2,
-          roleId: 1,
+          roleId: 4,
         }).then(() => {
           res.status(200).json({ succeed: true });
         }).catch((error) => {
@@ -188,12 +189,16 @@ const mySleep = () => {
   }
 };
 
-router.get('/leaderContacts', auth.authorize(1), (req, res) => {
+router.get('/leaderContacts', auth.authorize(PERM_TEAMS_DATA_ACCESS), (req, res) => {
   rest.restGetCall(() => db.findAllLeaderContacts(req.session.eventId), req, res);
 });
 
 router.get('/days', auth.authorize(), (req, res) => {
   rest.restGetCall(() => db.findAllDays(req.session.eventId), req, res);
+});
+
+router.get('/userPermissions', auth.authorize(), (req, res) => {
+  rest.restGetCall(() => db.findPermissionsByUserId(req.session.userId), req, res);
 });
 
 router.use('/teams', teamsRouter);

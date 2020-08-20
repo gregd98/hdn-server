@@ -136,9 +136,9 @@ create procedure findAllGames (
 	in pEventId int
 )
 begin
-	select a.id, a.name, a.description, a.notes, a.ownerId, 
+	select a.id, a.name, a.location, a.description, a.notes, a.ownerId, 
 	b.firstName ownerFirstName, b.lastName ownerLastName, 
-	a.playerCount, a.maxScore, a.startTime, a.endTime, 
+	a.playerCount, a.startTime, a.endTime, 
 	d.id assignedId, d.firstName assignedFirstName, d.lastName assignedLastName
 	from Games as a
 	join Persons as b
@@ -209,6 +209,41 @@ begin
 	(select 0 i union select 1 union select 2 union select 3 union select 4 union select 5 union select 6 union select 7 union select 8 union select 9) t0) v
 	where selected_date between firstDate and lastDate
     order by selected_date;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findPermissionsByUserId //
+create procedure findPermissionsByUserId (
+	in pUserId int
+)
+begin
+	select b.permissionId
+	from Users as a
+	join RolePermissions as b
+	on a.roleId = b.roleId
+	where a.id = pUserId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists insertGame //
+create procedure insertGame (
+	in name nvarchar(32),
+	in location nvarchar(32),
+	in description nvarchar(1024),
+	in notes nvarchar(1024),
+	in ownerId int,
+	in playerCount int,
+	in startTime datetime,
+	in endTime datetime,
+	in eventId int
+)
+begin
+	insert into Games 
+    (name, location, description, notes, ownerId, playerCount, startTime, endTime, eventId)
+    values
+    (name, location, description, notes, ownerId, playerCount, startTime, endTime, eventId);
 end //
 
 -- -----------------------------------------------------------------------------

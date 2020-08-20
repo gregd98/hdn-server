@@ -286,10 +286,10 @@ exports.findAllGames = (eventId) => new Promise((resolve, reject) => {
           const tmp = {
             id: item.id,
             name: item.name,
+            location: item.location,
             description: item.description,
             notes: item.notes,
             playerCount: item.playerCount,
-            maxScore: item.maxScore,
             startTime: item.startTime,
             endTime: item.endTime,
             owner: {
@@ -329,6 +329,37 @@ exports.findAllDays = (eventId) => new Promise((resolve, reject) => {
       reject(error);
     } else {
       resolve(result[0].map((day) => day.selected_date));
+    }
+  });
+});
+
+exports.findPermissionsByUserId = (userId) => new Promise((resolve, reject) => {
+  const query = `call findPermissionsByUserId(${mysql.escape(userId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(result[0].map((row) => row.permissionId));
+    }
+  });
+});
+
+exports.insertGame = (game, userId, eventId) => new Promise((resolve, reject) => {
+  const query = `call insertGame(
+  ${mysql.escape(game.title)}, 
+  ${mysql.escape(game.location)}, 
+  ${mysql.escape(game.description)}, 
+  ${mysql.escape(game.notes)}, 
+  ${mysql.escape(userId)}, 
+  ${mysql.escape(game.playerCount)}, 
+  ${mysql.escape(game.startTime)}, 
+  ${mysql.escape(game.endTime)}, 
+  ${mysql.escape(eventId)});`;
+  pool.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
     }
   });
 });

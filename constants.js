@@ -1,0 +1,2 @@
+exports.PERM_TEAMS_DATA_ACCESS = 1;
+exports.PERM_ADD_GAME = 2;

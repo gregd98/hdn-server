@@ -1,11 +1,12 @@
 const express = require('express'),
   db = require('../db/db'),
   auth = require('../middleware/authorization'),
-  rest = require('../utils/rest');
+  rest = require('../utils/rest'),
+  { PERM_TEAMS_DATA_ACCESS } = require('../constants');
 
 const router = express.Router();
 
-router.use(auth.authorize(1));
+router.use(auth.authorize(PERM_TEAMS_DATA_ACCESS));
 
 router.get('/', (req, res) => {
   rest.restGetCall(() => db.findAllPlayers(req.session.eventId), req, res);

@@ -153,11 +153,11 @@ create table if not exists Sessions (
 create table if not exists Games (
 	id int auto_increment,
     name nvarchar(32) not null,
+    location nvarchar(32),
     description nvarchar(1024),
     notes nvarchar(1024),
     ownerId int not null,
     playerCount int,
-    maxScore int,
     startTime datetime,
     endTime datetime,
     eventId int not null,
@@ -166,8 +166,7 @@ create table if not exists Games (
     constraint PK_Games primary key (id),
     constraint UN_Games_name unique (name, eventId),
     constraint FK_Games_Users foreign key (ownerId) references Users(id),
-    constraint CH_Games_playerCount check (playerCount > 0 and playerCount <= 16),
-    constraint CH_Games_maxScore check (maxScore > 0),
+    constraint CH_Games_playerCount check (playerCount >= 0 and playerCount <= 16),
     constraint CH_Games_time check ((startTime is null and endTime is null) or (startTime is not null and endTime is not null and startTime < endTime)),
     constraint FK_Games_Events foreign key (eventId) references Events(id)
 );
