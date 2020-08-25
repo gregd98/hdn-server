@@ -52,7 +52,7 @@ begin
     join Users as b
     on a.id = b.id
     where a.eventId = pEventId
-    order by a.lastName;
+    order by concat(a.lastName, ' ', a.firstName);
 end //
 
 -- -----------------------------------------------------------------------------
@@ -153,6 +153,44 @@ end //
 
 -- -----------------------------------------------------------------------------
 
+drop procedure if exists findAllGames2 //
+create procedure findAllGames2 (
+	in pEventId int
+)
+begin
+	select a.id, a.name, a.location, a.description, a.notes, 
+	a.ownerId, b.firstName ownerFirstName, b.lastName ownerLastName,
+	a.playerCount, a.startTime, a.endTime
+	from Games as a
+	join Persons as b
+	on a.ownerId = b.id
+	where a.eventId = pEventId
+	order by a.startTime, a.name; 
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findGamesByOwnerId //
+create procedure findGamesByOwnerId (
+	in pUserId int,
+    in pEventId int
+)
+begin
+	select a.id, a.name, a.location, a.description, a.notes, 
+	a.ownerId, b.firstName ownerFirstName, b.lastName ownerLastName,
+	a.playerCount, a.startTime, a.endTime
+	from Games as a
+	join Persons as b
+	on a.ownerId = b.id
+	left join Assignments as c
+	on a.id = c.gameId
+	where a.eventId = pEventId and (a.ownerId = pUserId or c.userId = pUserId)
+	group by a.id
+	order by a.startTime, a.name;
+end //
+
+-- -----------------------------------------------------------------------------
+
 drop procedure if exists insertPerson //
 CREATE PROCEDURE insertPerson(
     in firstName nvarchar(32),
@@ -244,6 +282,82 @@ begin
     (name, location, description, notes, ownerId, playerCount, startTime, endTime, eventId)
     values
     (name, location, description, notes, ownerId, playerCount, startTime, endTime, eventId);
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findGameById //
+create procedure findGameById (
+	in pId int,
+    in pEventId int
+)
+begin
+	select id, name, location, description, notes, ownerId, playerCount, startTime, endTime
+	from Games
+	where id = pId and eventId = pEventId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAssignmentsByGameId //
+create procedure findAssignmentsByGameId (
+	in pGameId int
+)
+begin
+	select a.userId as id, b.firstName, b.lastName
+	from Assignments as a
+    join Persons as b
+    on a.userId = b.id
+	where a.gameId = pGameId
+    order by concat(b.lastName, ' ', b.firstName);
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists updateAssignmentsByGameId //
+create procedure updateAssignmentsByGameId(
+    in pGameId int,
+    in pNewValues nvarchar(256)
+)
+begin
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+	start transaction;
+    set @myArrayOfValue = pNewValues;
+    while (LOCATE(',', @myArrayOfValue) > 0)
+	do
+		set @value = ELT(1, @myArrayOfValue);
+		set @myArrayOfValue = SUBSTRING(@myArrayOfValue, LOCATE(',',@myArrayOfValue) + 1);
+        select @value;
+        insert into Assignments (gameId, userId) values (pGameId, @value);
+	end while;
+    commit;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists deleteAssignmentsByGameId //
+create procedure deleteAssignmentsByGameId(
+	in pGameId int
+)
+begin
+	delete from Assignments where gameId = pGameId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists insertAssignment //
+create procedure insertAssignment(
+	in gameId int,
+    in userId int
+)
+begin
+	insert into Assignments (gameId, userId) values (gameId, userId);
 end //
 
 -- -----------------------------------------------------------------------------

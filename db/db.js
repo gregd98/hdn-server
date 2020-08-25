@@ -13,6 +13,42 @@ const pool = mysql.createPool({
   ],
 });
 
+exports.beginTransaction = (conn) => new Promise((resolve, reject) => {
+  conn.beginTransaction((err) => {
+    if (err) {
+      reject(err);
+    }
+    resolve();
+  });
+});
+
+exports.commit = (conn) => new Promise((resolve, reject) => {
+  conn.commit((err) => {
+    if (err) {
+      reject(err);
+    }
+    resolve();
+  });
+});
+
+exports.rollback = (conn) => new Promise((resolve, reject) => {
+  conn.rollback((err) => {
+    if (err) {
+      reject(err);
+    }
+    resolve();
+  });
+});
+
+exports.getConnection = () => new Promise((resolve, reject) => {
+  pool.getConnection((err, conn) => {
+    if (err) {
+      reject(err);
+    }
+    resolve(conn);
+  });
+});
+
 exports.findLoginDataByUsername = (username) => new Promise((resolve, reject) => {
   const query = `
   select a.id, a.username, b.firstName, b.lastName, a.pwdHash as hash, a.pwdSalt as salt, a.pwdIterations as iterations 
@@ -322,6 +358,68 @@ exports.findAllGames = (eventId) => new Promise((resolve, reject) => {
   });
 });
 
+exports.findAllGames2 = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllGames2(${mysql.escape(eventId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else if (result[0].length > 0) {
+      const output = [];
+      result[0].forEach((item) => {
+        output.push({
+          id: item.id,
+          name: item.name,
+          location: item.location,
+          description: item.description,
+          notes: item.notes,
+          playerCount: item.playerCount,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          owner: {
+            id: item.ownerId,
+            firstName: item.ownerFirstName,
+            lastName: item.ownerLastName,
+          },
+        });
+      });
+      resolve(output);
+    } else {
+      resolve([]);
+    }
+  });
+});
+
+exports.findGamesByOwnerId = (ownerId, eventId) => new Promise((resolve, reject) => {
+  const query = `call findGamesByOwnerId(${mysql.escape(ownerId)}, ${mysql.escape(eventId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else if (result[0].length > 0) {
+      const output = [];
+      result[0].forEach((item) => {
+        output.push({
+          id: item.id,
+          name: item.name,
+          location: item.location,
+          description: item.description,
+          notes: item.notes,
+          playerCount: item.playerCount,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          owner: {
+            id: item.ownerId,
+            firstName: item.ownerFirstName,
+            lastName: item.ownerLastName,
+          },
+        });
+      });
+      resolve(output);
+    } else {
+      resolve([]);
+    }
+  });
+});
+
 exports.findAllDays = (eventId) => new Promise((resolve, reject) => {
   const query = `call findAllDays(${mysql.escape(eventId)});`;
   pool.query(query, (error, result) => {
@@ -356,6 +454,50 @@ exports.insertGame = (game, userId, eventId) => new Promise((resolve, reject) =>
   ${mysql.escape(game.endTime)}, 
   ${mysql.escape(eventId)});`;
   pool.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+});
+
+exports.findGameById = (gameId, eventId) => new Promise((resolve, reject) => {
+  const query = `call findGameById(${mysql.escape(gameId)}, ${mysql.escape(eventId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(result[0]);
+    }
+  });
+});
+
+exports.findAssignmentsByGameId = (gameId) => new Promise((resolve, reject) => {
+  const query = `call findAssignmentsByGameId(${mysql.escape(gameId)});`;
+  pool.query(query, (error, result) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(result[0]);
+    }
+  });
+});
+
+exports.deleteAssignmentsByGameId = (gameId, conn = pool) => new Promise((resolve, reject) => {
+  const query = `call deleteAssignmentsByGameId(${mysql.escape(gameId)});`;
+  conn.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+});
+
+exports.insertAssignment = (gameId, userId, conn = pool) => new Promise((resolve, reject) => {
+  const query = `call insertAssignment(${mysql.escape(gameId)}, ${mysql.escape(userId)});`;
+  conn.query(query, (error) => {
     if (error) {
       reject(error);
     } else {

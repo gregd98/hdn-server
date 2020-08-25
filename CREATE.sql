@@ -78,7 +78,7 @@ create table if not exists Roles (
 
 create table if not exists Permissions (
 	id int auto_increment,
-    name nvarchar(16) not null,
+    name nvarchar(32) not null,
     
     constraint PK_Permissions primary key (id),
     constraint UN_Permissions_name unique (name)
