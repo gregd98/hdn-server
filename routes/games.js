@@ -146,4 +146,19 @@ router.post('/:id/assignments', auth.authorize(), (req, res) => {
   });
 });
 
+router.post('/:id/moveOwner', auth.authorize(), (req, res) => {
+  const gameId = req.params.id;
+  const data = JSON.parse(req.body);
+  getGamePermissions(gameId, req, res).then((game) => {
+    if (game.permissions.includes('admin')) {
+      db.updateGameOwner(gameId, data).then(() => {
+        res.status(200).json({ succeed: true });
+      }).catch((error) => {
+        console.log(error.message);
+        res.status(500).json({ succeed: false, authenticated: false, message: 'Internal server error.' });
+      });
+    }
+  });
+});
+
 module.exports = router;

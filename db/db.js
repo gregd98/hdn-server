@@ -505,3 +505,14 @@ exports.insertAssignment = (gameId, userId, conn = pool) => new Promise((resolve
     }
   });
 });
+
+exports.updateGameOwner = (gameId, userId) => new Promise((resolve, reject) => {
+  const query = `call updateGameOwner(${mysql.escape(gameId)}, ${mysql.escape(userId)});`;
+  pool.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+});

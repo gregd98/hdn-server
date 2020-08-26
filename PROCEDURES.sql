@@ -314,33 +314,6 @@ end //
 
 -- -----------------------------------------------------------------------------
 
-drop procedure if exists updateAssignmentsByGameId //
-create procedure updateAssignmentsByGameId(
-    in pGameId int,
-    in pNewValues nvarchar(256)
-)
-begin
-    
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-	start transaction;
-    set @myArrayOfValue = pNewValues;
-    while (LOCATE(',', @myArrayOfValue) > 0)
-	do
-		set @value = ELT(1, @myArrayOfValue);
-		set @myArrayOfValue = SUBSTRING(@myArrayOfValue, LOCATE(',',@myArrayOfValue) + 1);
-        select @value;
-        insert into Assignments (gameId, userId) values (pGameId, @value);
-	end while;
-    commit;
-end //
-
--- -----------------------------------------------------------------------------
-
 drop procedure if exists deleteAssignmentsByGameId //
 create procedure deleteAssignmentsByGameId(
 	in pGameId int
@@ -358,6 +331,25 @@ create procedure insertAssignment(
 )
 begin
 	insert into Assignments (gameId, userId) values (gameId, userId);
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists updateGameOwner //
+create procedure updateGameOwner(
+	in pGameId int,
+    in pUserId int
+)
+begin
+	declare exit handler for sqlexception
+    begin
+        rollback;
+        resignal;
+    end;
+    start transaction;
+    delete from Assignments where gameId = pGameId and userId = pUserId;
+    update Games set ownerId = pUserId where id = pGameId;
+    commit;
 end //
 
 -- -----------------------------------------------------------------------------
