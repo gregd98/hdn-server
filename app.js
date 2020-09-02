@@ -7,7 +7,7 @@ const express = require('express'),
   apiRoutes = require('./routes/api'),
   db = require('./db/db');
 
-const PORT = 80;
+const PORT = 8000;
 const app = express();
 
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
