@@ -81,6 +81,3 @@ typings/
 
 # WebStorm project files
 .idea/
-
-static/data
-public

@@ -147,7 +147,7 @@ begin
 	on a.id = c.gameId
 	left join Persons as d
 	on c.userId = d.id
-    where a.eventId = pEventId
+    where a.eventId = pEventId and a.active = 1
     order by a.startTime, concat(assignedLastName, ' ', assignedFirstName);
 end //
 
@@ -164,7 +164,7 @@ begin
 	from Games as a
 	join Persons as b
 	on a.ownerId = b.id
-	where a.eventId = pEventId
+	where a.eventId = pEventId and a.active = 1
 	order by a.startTime, a.name; 
 end //
 
@@ -184,7 +184,7 @@ begin
 	on a.ownerId = b.id
 	left join Assignments as c
 	on a.id = c.gameId
-	where a.eventId = pEventId and (a.ownerId = pUserId or c.userId = pUserId)
+	where a.eventId = pEventId and a.active = 1 and (a.ownerId = pUserId or c.userId = pUserId)
 	group by a.id
 	order by a.startTime, a.name;
 end //
@@ -292,9 +292,11 @@ create procedure findGameById (
     in pEventId int
 )
 begin
-	select id, name, location, description, notes, ownerId, playerCount, startTime, endTime
-	from Games
-	where id = pId and eventId = pEventId;
+	select a.id, a.name, a.location, a.description, a.notes, a.ownerId, b.firstName, b.lastName, a.playerCount, a.startTime, a.endTime
+	from Games as a
+	join Persons as b
+	on a.ownerId = b.id
+	where a.id = pId and a.eventId = pEventId and a.active = 1;
 end //
 
 -- -----------------------------------------------------------------------------
@@ -350,6 +352,41 @@ begin
     delete from Assignments where gameId = pGameId and userId = pUserId;
     update Games set ownerId = pUserId where id = pGameId;
     commit;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists deleteGame //
+create procedure deleteGame(
+	in pId int
+)
+begin
+	update Games set active = 0 where id = pId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists updateGame //
+create procedure updateGame(
+	in pId int,
+    in pName nvarchar(32),
+	in pLocation nvarchar(32),
+	in pDescription nvarchar(1024),
+	in pNotes nvarchar(1024),
+	in pPlayerCount int,
+	in pStartTime datetime,
+	in pEndTime datetime
+)
+begin
+	update Games set 
+    name = pName,
+    location = pLocation,
+    description = pDescription,
+    notes = pNotes,
+    playerCount = pPlayerCount,
+    startTime = pStartTime,
+    endTime = pEndTime
+    where id = pId;
 end //
 
 -- -----------------------------------------------------------------------------

@@ -23,7 +23,7 @@ router.get('/', auth.authorize(), (req, res) => {
           req.session.userId, req.session.eventId,
         ), req, res);
       } else {
-        rest.restGetCall(() => db.findAllGames(req.session.eventId), req, res);
+        rest.restGetCall(() => db.findAllGames2(req.session.eventId), req, res);
       }
     } else {
       rest.restGetCall(() => db.findGamesByOwnerId(
@@ -147,6 +147,7 @@ router.post('/:id/assignments', auth.authorize(), (req, res) => {
 });
 
 router.post('/:id/moveOwner', auth.authorize(), (req, res) => {
+  // TODO validation ide is
   const gameId = req.params.id;
   const data = JSON.parse(req.body);
   getGamePermissions(gameId, req, res).then((game) => {
@@ -157,6 +158,41 @@ router.post('/:id/moveOwner', auth.authorize(), (req, res) => {
         console.log(error.message);
         res.status(500).json({ succeed: false, authenticated: false, message: 'Internal server error.' });
       });
+    } else {
+      res.status(401).json({ succeed: false, authenticated: false, message: 'Access denied.' });
+    }
+  });
+});
+
+router.delete('/:id', auth.authorize(), (req, res) => {
+  const gameId = req.params.id;
+  getGamePermissions(gameId, req, res).then((game) => {
+    if (game.permissions.includes('admin')) {
+      db.deleteGame(gameId).then(() => {
+        res.status(200).json({ succeed: true });
+      }).catch((error) => {
+        console.log(error.message);
+        res.status(500).json({ succeed: false, authenticated: true, message: 'Internal server error.' });
+      });
+    } else {
+      res.status(401).json({ succeed: false, authenticated: true, message: 'Access denied.' });
+    }
+  });
+});
+
+router.post('/:id', auth.authorize(), (req, res) => {
+  const data = JSON.parse(req.body);
+  const gameId = req.params.id;
+  getGamePermissions(gameId, req, res).then((game) => {
+    if (game.permissions.includes('edit')) {
+      db.updateGame(data, req.params.id).then(() => {
+        res.status(200).json({ succeed: true });
+      }).catch((error) => {
+        console.log(error.message);
+        res.status(500).json({ succeed: false, authenticated: true, message: 'Internal server error.' });
+      });
+    } else {
+      res.status(401).json({ succeed: false, authenticated: true, message: 'Access denied.' });
     }
   });
 });

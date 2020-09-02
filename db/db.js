@@ -516,3 +516,33 @@ exports.updateGameOwner = (gameId, userId) => new Promise((resolve, reject) => {
     }
   });
 });
+
+exports.deleteGame = (gameId) => new Promise((resolve, reject) => {
+  const query = `call deleteGame(${mysql.escape(gameId)});`;
+  pool.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+});
+
+exports.updateGame = (game, gameId) => new Promise((resolve, reject) => {
+  const query = `call updateGame(
+  ${mysql.escape(gameId)}, 
+  ${mysql.escape(game.title)}, 
+  ${mysql.escape(game.location)}, 
+  ${mysql.escape(game.description)}, 
+  ${mysql.escape(game.notes)}, 
+  ${mysql.escape(game.playerCount)}, 
+  ${mysql.escape(game.startTime)}, 
+  ${mysql.escape(game.endTime)});`;
+  pool.query(query, (error) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+});
