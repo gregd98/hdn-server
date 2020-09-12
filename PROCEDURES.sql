@@ -391,5 +391,61 @@ end //
 
 -- -----------------------------------------------------------------------------
 
+drop procedure if exists findScoresByGameId //
+create procedure findScoresByGameId(
+	in pGameId int
+)
+begin
+	select b.teamId, b.score, b.fairplay
+	from Games as a
+	join Scores as b
+	on a.id = b.gameId
+	join Teams as c
+	on b.teamId = c.id
+	where a.id = pGameId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists insertScore //
+create procedure insertScore(
+	in gameId int,
+    in teamId int,
+    in score int,
+    in fairplay bit
+)
+begin
+	insert into Scores (gameId, teamId, score, fairplay) values (gameId, teamId, score, fairplay);
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists updateScore //
+create procedure updateScore(
+	in pGameId int,
+    in pTeamId int,
+    in pScore int,
+    in pFairplay bit
+)
+begin
+	update Scores set score = pScore, fairplay = pFairplay where gameId = pGameId and teamId = pTeamId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAllScores //
+create procedure findAllScores(
+	in pEventId int
+)
+begin
+	select a.id, a.name, b.teamId, b.score, b.fairplay 
+	from Games as a
+	left join Scores as b
+	on a.id = b.gameId
+    where eventId = pEventId
+	order by a.id, b.teamId;
+end //
+
+-- -----------------------------------------------------------------------------
 
 DELIMITER ;

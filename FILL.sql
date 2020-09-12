@@ -3,8 +3,8 @@ insert into ShirtTypes (name) values ('male'), ('female');
 insert into ShirtSizes (name) values ('XXS'), ('XS'), ('S'), ('M'), ('L'), ('XL'), ('XXL');
 insert into Posts (name) values ('organizer'), ('volunteer');
 insert into Roles (name) values ('volunteer'), ('organizer'), ('content_admin'), ('system_admin');
-insert into Permissions (name) values ('TEAMS_DATA_ACCESS'), ('ADD_GAME'), ('ALL_GAME_ACCESS'), ('ALL_GAME_ADMIN'), ('EDIT_ASSIGNED_GAME');
-insert into RolePermissions (roleId, permissionId) values (2, 1), (2, 2), (2, 3), (4, 1), (4, 2), (4, 3), (4, 4), (2, 5), (4, 5);
+insert into Permissions (name) values ('TEAMS_DATA_ACCESS'), ('ADD_GAME'), ('ALL_GAME_ACCESS'), ('ALL_GAME_ADMIN'), ('EDIT_ASSIGNED_GAME'), ('SCORE_TABLE_ACCESS');
+insert into RolePermissions (roleId, permissionId) values (2, 1), (2, 2), (2, 3), (4, 1), (4, 2), (4, 3), (4, 4), (2, 5), (4, 5), (4, 6);
 
 insert into Persons (firstName, lastName, phone, email, CNP, eventId) values ('Gergely', 'Demény', '0787318451', 'gergodemeny@gmail.com', '1981003142618', 1);
 insert into Users (id, username, pwdHash, pwdSalt, pwdIterations, shirtTypeId, shirtSizeId, postId, roleId) values 

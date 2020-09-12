@@ -11,6 +11,13 @@ const pool = mysql.createPool({
     'DATE',
     'DATETIME',
   ],
+  typeCast: (field, next) => {
+    if (field.type === 'BIT' && field.length === 1) {
+      const bit = field.string();
+      return (bit === null) ? null : bit.charCodeAt(0);
+    }
+    return next();
+  },
 });
 
 exports.beginTransaction = (conn) => new Promise((resolve, reject) => {
@@ -114,10 +121,14 @@ exports.removeAllSessions = () => new Promise((resolve, reject) => {
   });
 });
 
-exports.checkExistence = (col, table, value, reverse, onError, eventId = false) => new Promise(
+exports.checkExistence = (
+  col, table, value, reverse, onError, eventId = false, exceptId,
+) => new Promise(
   (resolve, reject) => {
     const query = `
-    select count(*) as count from ${table} where ${col} = ${mysql.escape(value)}${eventId ? ` and eventId = ${eventId}` : ''};`;
+    select count(*) as count from ${table} where ${col} = ${mysql.escape(value)}
+    ${eventId ? ` and eventId = ${eventId}` : ''}
+    ${exceptId ? ` and id != ${exceptId}` : ''};`;
     pool.query(query, (error, result) => {
       if (error) {
         reject(error);
@@ -453,79 +464,37 @@ exports.insertGame = (game, userId, eventId) => new Promise((resolve, reject) =>
   ${mysql.escape(game.startTime)}, 
   ${mysql.escape(game.endTime)}, 
   ${mysql.escape(eventId)});`;
-  pool.query(query, (error) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve();
-    }
-  });
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
 });
 
 exports.findGameById = (gameId, eventId) => new Promise((resolve, reject) => {
   const query = `call findGameById(${mysql.escape(gameId)}, ${mysql.escape(eventId)});`;
-  pool.query(query, (error, result) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(result[0]);
-    }
-  });
+  pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
 });
 
 exports.findAssignmentsByGameId = (gameId) => new Promise((resolve, reject) => {
   const query = `call findAssignmentsByGameId(${mysql.escape(gameId)});`;
-  pool.query(query, (error, result) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(result[0]);
-    }
-  });
+  pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
 });
 
 exports.deleteAssignmentsByGameId = (gameId, conn = pool) => new Promise((resolve, reject) => {
   const query = `call deleteAssignmentsByGameId(${mysql.escape(gameId)});`;
-  conn.query(query, (error) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve();
-    }
-  });
+  conn.query(query, (error) => (error ? () => reject(error) : () => resolve())());
 });
 
 exports.insertAssignment = (gameId, userId, conn = pool) => new Promise((resolve, reject) => {
   const query = `call insertAssignment(${mysql.escape(gameId)}, ${mysql.escape(userId)});`;
-  conn.query(query, (error) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve();
-    }
-  });
+  conn.query(query, (error) => (error ? () => reject(error) : () => resolve())());
 });
 
 exports.updateGameOwner = (gameId, userId) => new Promise((resolve, reject) => {
   const query = `call updateGameOwner(${mysql.escape(gameId)}, ${mysql.escape(userId)});`;
-  pool.query(query, (error) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve();
-    }
-  });
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
 });
 
 exports.deleteGame = (gameId) => new Promise((resolve, reject) => {
   const query = `call deleteGame(${mysql.escape(gameId)});`;
-  pool.query(query, (error) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve();
-    }
-  });
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
 });
 
 exports.updateGame = (game, gameId) => new Promise((resolve, reject) => {
@@ -538,11 +507,63 @@ exports.updateGame = (game, gameId) => new Promise((resolve, reject) => {
   ${mysql.escape(game.playerCount)}, 
   ${mysql.escape(game.startTime)}, 
   ${mysql.escape(game.endTime)});`;
-  pool.query(query, (error) => {
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
+});
+
+exports.findScoresByGameId = (gameId) => new Promise((resolve, reject) => {
+  const query = `call findScoresByGameId(${mysql.escape(gameId)});`;
+  pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
+});
+
+exports.insertScore = (gameId, data) => new Promise((resolve, reject) => {
+  const { teamId, score, fairplay } = data;
+  const query = `call insertScore(
+  ${mysql.escape(gameId)}, 
+  ${mysql.escape(teamId)}, 
+  ${mysql.escape(score)}, 
+  ${mysql.escape(fairplay)});`;
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
+});
+
+exports.updateScore = (gameId, data) => new Promise((resolve, reject) => {
+  const { teamId, score, fairplay } = data;
+  const query = `call updateScore(
+  ${mysql.escape(gameId)}, 
+  ${mysql.escape(teamId)}, 
+  ${mysql.escape(score)}, 
+  ${mysql.escape(fairplay)});`;
+  pool.query(query, (error) => (error ? () => reject(error) : () => resolve())());
+});
+
+exports.findAllScores = (eventId) => new Promise((resolve, reject) => {
+  const query = `call findAllScores(${mysql.escape(eventId)});`;
+  pool.query(query, (error, result) => {
     if (error) {
       reject(error);
     } else {
-      resolve();
+      const list = result[0];
+      if (list.length > 0) {
+        const output = [];
+        let lastId = 0;
+        list.forEach((item) => {
+          if (item.id > lastId) {
+            const tmp = { id: item.id, name: item.name, scores: {} };
+            if (item.teamId) {
+              tmp.scores[item.teamId] = { score: item.score, fairplay: item.fairplay };
+            }
+            output.push(tmp);
+            lastId = item.id;
+          } else {
+            output[output.length - 1].scores[item.teamId] = {
+              score: item.score,
+              fairplay: item.fairplay,
+            };
+          }
+        });
+        resolve(output);
+      } else {
+        resolve([]);
+      }
     }
   });
 });

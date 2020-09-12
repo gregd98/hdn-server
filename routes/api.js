@@ -9,8 +9,9 @@ const express = require('express'),
   rest = require('../utils/rest'),
   teamsRouter = require('./teams'),
   playersRouter = require('./players'),
-  gamesRouter = require('./games'),
-  { PERM_TEAMS_DATA_ACCESS } = require('../constants');
+  gamesRouter = require('./games/games'),
+  { PERM_TEAMS_DATA_ACCESS, PERM_SCORE_TABLE_ACCESS } = require('../constants'),
+  responses = require('../utils/responses');
 
 const router = express.Router();
 
@@ -23,22 +24,12 @@ const reactDevCors = {
 
 router.use(cors(reactDevCors));
 
-router.get('/ping', (req, res) => {
-  res.status(200).send('pong');
-});
-
 router.get('/userData', auth.authorize(), (req, res) => {
-  db.findPersonById(req.session.userId).then((result) => {
-    res.status(200).json({ succeed: true, payload: result });
-  }).catch((error) => {
-    console.log(error.message);
-    res.status(500).json({ succeed: false, authenticated: true, message: 'Internal server error.' });
-  });
+  rest.restGetCall(() => db.findPersonById(req.session.userId), req, res);
 });
 
 router.post('/login', (req, res) => {
   const data = JSON.parse(req.body);
-  console.log(`Username: ${data.username}\nPassword: ${data.password}`);
   db.findLoginDataByUsername(data.username).then((result) => {
     let succeed;
     if (result) {
@@ -58,14 +49,14 @@ router.post('/login', (req, res) => {
         res.status(200).json(obj);
       }).catch((error) => {
         console.log(error.message);
-        res.status(500).json({ succeed: false, message: 'Internal server error.' });
+        responses.internalServerError(res);
       });
     } else {
       res.status(200).json({ succeed: false, message: 'Invalid username or password.' });
     }
   }).catch((error) => {
     console.log(error.message);
-    res.status(500).json({ succeed: false, message: 'Internal server error.' });
+    responses.internalServerError(res);
   });
 });
 
@@ -73,7 +64,7 @@ router.get('/logout', (req, res) => {
   console.log('Logout called.');
   req.session.destroy();
   db.removeSession(req.sessionID).then(() => {
-    res.status(200).json({ succeed: true });
+    responses.succeed(res);
   }).catch((error) => {
     console.log(error.message);
     res.status(200).json({ succeed: false });
@@ -149,19 +140,18 @@ router.post('/signup', (req, res) => {
           postId: 2,
           roleId: 4,
         }).then(() => {
-          res.status(200).json({ succeed: true });
+          responses.succeed(res);
         }).catch((error) => {
           console.log(error.message);
-          res.status(500).json({ succeed: false, message: 'Internal server error.' });
+          responses.internalServerError(res);
         });
       })
       .catch((error) => {
         if (error instanceof Error) {
           console.log(error.message);
-          res.status(500).json({ succeed: false, message: 'Internal server error.' });
+          responses.internalServerError(res);
         } else {
-          console.log(error);
-          res.status(200).json({ succeed: false, inputErrors: error });
+          responses.inputErrors(res, error);
         }
       });
   }
@@ -183,12 +173,6 @@ router.get('/users', auth.authorize(), (req, res) => {
   rest.restGetCall(() => db.findAllUsers(req.session.eventId), req, res);
 });
 
-const mySleep = () => {
-  for (let i = 1; i < 500000; i += 1) {
-    console.log(Math.sqrt(i));
-  }
-};
-
 router.get('/leaderContacts', auth.authorize(PERM_TEAMS_DATA_ACCESS), (req, res) => {
   rest.restGetCall(() => db.findAllLeaderContacts(req.session.eventId), req, res);
 });
@@ -199,6 +183,10 @@ router.get('/days', auth.authorize(), (req, res) => {
 
 router.get('/userPermissions', auth.authorize(), (req, res) => {
   rest.restGetCall(() => db.findPermissionsByUserId(req.session.userId), req, res);
+});
+
+router.get('/scores', auth.authorize(PERM_SCORE_TABLE_ACCESS), (req, res) => {
+  rest.restGetCall(() => db.findAllScores(req.session.eventId), req, res);
 });
 
 router.use('/teams', teamsRouter);

@@ -2,7 +2,8 @@ const express = require('express'),
   db = require('../db/db'),
   auth = require('../middleware/authorization'),
   rest = require('../utils/rest'),
-  { PERM_TEAMS_DATA_ACCESS } = require('../constants');
+  { PERM_TEAMS_DATA_ACCESS } = require('../constants'),
+  responses = require('../utils/responses');
 
 const router = express.Router();
 
@@ -16,14 +17,13 @@ router.get('/:id', (req, res) => {
   const { id } = req.params;
   db.findPlayerById(id, req.session.eventId).then((player) => {
     if (player) {
-      res.status(200).json({ succeed: true, payload: player });
+      responses.rest(res, player);
     } else {
-      console.log(`404: /players/${id}`);
-      res.status(404).json({ succeed: false, authenticated: true, message: 'This page does not exist.' });
+      responses.notFound(res);
     }
   }).catch((error) => {
     console.log(error.message);
-    res.status(500).json({ succeed: false, authenticated: true, message: 'Internal server error.' });
+    responses.internalServerError(res);
   });
 });
 

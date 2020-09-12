@@ -7,7 +7,7 @@ const express = require('express'),
   apiRoutes = require('./routes/api'),
   db = require('./db/db');
 
-const PORT = 8000;
+const PORT = 80;
 const app = express();
 
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
@@ -29,8 +29,7 @@ app.use('/organizer', organizerRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/*', (req, res) => {
-  console.log('Redirecting');
-  res.redirect('/organizer');
+  res.status(200).sendFile(path.join(__dirname, './public', 'index.html'));
 });
 
 app.listen(PORT, () => { console.log(`Server listening on port ${PORT}.`); });
