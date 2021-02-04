@@ -1,13 +1,24 @@
 {
   "name": "hdn-server",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
+  "bin": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ],
+    "targets": [
+      "latest-linux-x64",
+      "latest-win-x64",
+      "latest-macos-x64"
+    ]
+  },
+  "author": "Demény Gergely",
+  "license": "MIT",
   "devDependencies": {
     "eslint": "^7.5.0",
     "eslint-config-airbnb-base": "^14.2.0",
@@ -23,6 +34,7 @@
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
     "path": "^0.12.7",
+    "pkg": "^4.4.9",
     "validate.js": "^0.13.1"
   }
 }
