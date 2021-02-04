@@ -162,7 +162,9 @@ exports.insertPersonUser = (input) => new Promise((resolve, reject) => {
   ${mysql.escape(input.shirtTypeId)},
   ${mysql.escape(input.shirtSizeId)},
   ${mysql.escape(input.postId)}, 
-  ${mysql.escape(input.roleId)});`;
+  ${mysql.escape(input.roleId)},
+  ${mysql.escape(input.regKeyId)},
+  ${mysql.escape(input.singleUse)});`;
 
   pool.query(query, (error) => {
     if (error) {
@@ -515,6 +517,13 @@ exports.findScoresByGameId = (gameId) => new Promise((resolve, reject) => {
   pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
 });
 
+exports.deleteScoreByIds = (gameId, teamId) => new Promise((resolve, reject) => {
+  const query = `call deleteScoreByIds(${mysql.escape(gameId)}, ${mysql.escape(teamId)});`;
+  pool.query(query, (error) => {
+    (error ? () => reject(error) : resolve)();
+  });
+});
+
 exports.insertScore = (gameId, data) => new Promise((resolve, reject) => {
   const { teamId, score, fairplay } = data;
   const query = `call insertScore(
@@ -566,4 +575,55 @@ exports.findAllScores = (eventId) => new Promise((resolve, reject) => {
       }
     }
   });
+});
+
+exports.checkRegKey = (regKey) => new Promise((resolve, reject) => {
+  const query = `call findRegKeyByKey(${mysql.escape(regKey)});`;
+  pool.query(query, (error, result) => (
+    error ? () => reject(error) : () => resolve(result[0].length > 0)
+  )());
+});
+
+exports.findRegKeyByKey = (regKey) => new Promise((resolve, reject) => {
+  const query = `call findRegKeyByKey(${mysql.escape(regKey)});`;
+  pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
+});
+
+exports.findAllInvitations = () => new Promise((resolve, reject) => {
+  const query = 'call findAllInvitations();';
+  pool.query(query, (error, result) => (error ? () => reject(error) : () => resolve(result[0]))());
+});
+
+exports.findAllEvents = () => new Promise((resolve, reject) => {
+  pool.query('call findAllEvents();', (error, result) => (error ? reject : resolve)(error || result[0]));
+});
+
+exports.findAllPosts = () => new Promise((resolve, reject) => {
+  pool.query('call findAllPosts();', (error, result) => (error ? reject : resolve)(error || result[0]));
+});
+
+exports.findAllRoles = () => new Promise((resolve, reject) => {
+  pool.query('call findAllRoles();', (error, result) => (error ? reject : resolve)(error || result[0]));
+});
+
+exports.insertRegKey = (data) => new Promise((resolve, reject) => {
+  const query = `call insertRegKey(
+  ${mysql.escape(data.name)},
+  ${mysql.escape(data.regKey)},
+  ${mysql.escape(data.userId)},
+  ${mysql.escape(data.postId)},
+  ${mysql.escape(data.roleId)},
+  ${mysql.escape(data.eventId)},
+  ${mysql.escape(data.singleUse)});`;
+  pool.query(query, (error) => {
+    (error ? () => reject(error) : resolve)();
+  });
+});
+
+exports.insertEvent = (data) => new Promise((resolve, reject) => {
+  const query = `call insertEvent(
+  ${mysql.escape(data.name)},
+  ${mysql.escape(data.startDate)},
+  ${mysql.escape(data.endDate)});`;
+  pool.query(query, (error) => (error ? () => reject(error) : resolve)());
 });

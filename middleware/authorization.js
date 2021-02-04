@@ -27,3 +27,5 @@ exports.authorize = (permissionId = 0) => (req, res, next) => {
     res.status(500).json({ succeed: false, authenticated: true, message: 'Internal server error.' });
   });
 };
+
+exports.sleep = (ms) => (req, res, next) => new Promise(() => setTimeout(next, ms));

@@ -81,3 +81,6 @@ typings/
 
 # WebStorm project files
 .idea/
+FILL.sql
+FILL_GAMES.sql
+FILL_TEAMS.sql

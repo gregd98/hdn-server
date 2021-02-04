@@ -15,9 +15,3 @@ exports.checkIdList = (list) => {
   }
   return true;
 };
-
-exports.loadingTest = () => {
-  for (let i = 1; i < 500000; i += 1) {
-    console.log(Math.sqrt(i));
-  }
-};

@@ -206,7 +206,9 @@ CREATE PROCEDURE insertPerson(
     in shirtTypeId int,
     in shirtSizeId int,
     in postId int,
-    in roleId int
+    in roleId int,
+    in pRegKeyId int,
+    in pSingleUse int
 )
 BEGIN
 	declare l_account_id int default 0;    
@@ -223,6 +225,13 @@ BEGIN
     if l_account_id > 0 then
 		insert into Users (id, username, pwdHash, pwdSalt, pwdIterations, shirtTypeId, shirtSizeId, postId, roleId)
         values (l_account_id, username, pwdHash, pwdSalt, pwdIterations, shirtTypeId, shirtSizeId, postId, roleId);
+
+		if pSingleUse = 1 then
+			set @newActive = 0;
+		else
+			set @newActive = 1;
+		end if;
+		update RegKeys set used = used + 1, active = @newActive where id = pRegKeyId;
         commit;
 	else
         rollback;
@@ -407,6 +416,17 @@ end //
 
 -- -----------------------------------------------------------------------------
 
+drop procedure if exists deleteScoreByIds //
+create procedure deleteScoreByIds(
+	in pGameId int,
+    in pTeamId int
+)
+begin
+	delete from Scores where gameId = pGameId and teamId = pTeamId;
+end //
+
+-- -----------------------------------------------------------------------------
+
 drop procedure if exists insertScore //
 create procedure insertScore(
 	in gameId int,
@@ -444,6 +464,91 @@ begin
 	on a.id = b.gameId
     where eventId = pEventId
 	order by a.id, b.teamId;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findRegKeyByKey //
+create procedure findRegKeyByKey(
+	in pRegKey nvarchar(128)
+)
+begin
+    select id, postId, roleId, eventId, singleUse from RegKeys where regKey = pRegKey and active = 1;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAllInvitations //
+create procedure findAllInvitations()
+begin
+	select a.id, a.name, a.regKey, a.userId,
+	b.firstName, b.lastName, c.name as post, 
+	d.name as role, e.name as event, 
+	a.singleUse, a.used, a.active
+	from RegKeys as a
+	join Persons as b
+	on a.userId = b.id
+	join Posts as c
+	on a.postId = c.id
+	join Roles as d
+	on a.roleId = d.id
+	join Events as e
+	on a.eventId = e.id
+    order by a.id;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAllEvents //
+create procedure findAllEvents()
+begin
+	select id, name, firstDay, lastDay from Events;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAllPosts //
+create procedure findAllPosts()
+begin
+	select id, name from Posts;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists findAllRoles //
+create procedure findAllRoles()
+begin
+	select id, name from Roles;
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists insertRegKey //
+create procedure insertRegKey(
+	in name nvarchar(16),
+    in regKey nvarchar(128),
+    in userId int,
+    in postId int,
+    in roleId int,
+    in eventId int,
+    in singleUse bit
+)
+begin
+	insert into RegKeys (name, regKey, userId, postId, roleId, eventId, singleUse)
+    values (name, regKey, userId, postId, roleId, eventId, singleUse);
+end //
+
+-- -----------------------------------------------------------------------------
+
+drop procedure if exists insertEvent //
+create procedure insertEvent(
+	in name nvarchar(16),
+    in firstDay date,
+    in lastDay date
+)
+begin
+	insert into Events (name, firstDay, lastDay)
+    values (name, firstDay, lastDay);
 end //
 
 -- -----------------------------------------------------------------------------

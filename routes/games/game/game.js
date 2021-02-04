@@ -24,7 +24,6 @@ router.post('/', (req, res) => {
       const validation = validate(data, gameConstraints, { fullMessages: false });
       if (validation) {
         Object.entries(validation).forEach(([key, value]) => { [validation[key]] = value; });
-        console.log(validation);
         responses.inputErrors(res, validation);
       } else {
         db.checkExistence('name', 'Games', data.title, true, {

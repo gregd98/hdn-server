@@ -32,11 +32,9 @@ router.get('/', auth.authorize(), (req, res) => {
 router.put('/', auth.authorize(PERM_ADD_GAME), (req, res) => {
   // TODO itt majd a timeokat checkolni
   const data = JSON.parse(req.body);
-  console.log(data);
   const validation = validate(data, gameConstraints, { fullMessages: false });
   if (validation) {
     Object.entries(validation).forEach(([key, value]) => { [validation[key]] = value; });
-    console.log(validation);
     responses.inputErrors(res, validation);
   } else {
     db.checkExistence('name', 'Games', data.title, true, {

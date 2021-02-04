@@ -10,7 +10,9 @@ const express = require('express'),
   teamsRouter = require('./teams'),
   playersRouter = require('./players'),
   gamesRouter = require('./games/games'),
-  { PERM_TEAMS_DATA_ACCESS, PERM_SCORE_TABLE_ACCESS } = require('../constants'),
+  invitationsRouter = require('./invitations'),
+  eventsRouter = require('./events'),
+  { PERM_TEAMS_DATA_ACCESS, PERM_SCORE_TABLE_ACCESS, PERM_SYSTEM_ADMIN } = require('../constants'),
   responses = require('../utils/responses');
 
 const router = express.Router();
@@ -52,7 +54,7 @@ router.post('/login', (req, res) => {
         responses.internalServerError(res);
       });
     } else {
-      res.status(200).json({ succeed: false, message: 'Invalid username or password.' });
+      res.status(401).json({ succeed: false, authenticated: true, message: 'Invalid username or password.' });
     }
   }).catch((error) => {
     console.log(error.message);
@@ -61,7 +63,6 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  console.log('Logout called.');
   req.session.destroy();
   db.removeSession(req.sessionID).then(() => {
     responses.succeed(res);
@@ -92,68 +93,90 @@ validate.validators.selector = (value) => {
   return undefined;
 };
 
-router.post('/signup', (req, res) => {
-  const data = JSON.parse(req.body);
-  console.log(data);
-  const validation = validate(data, signupConstraints, { fullMessages: false });
-  if (validation) {
-    Object.entries(validation).forEach(([key, value]) => { [validation[key]] = value; });
-    console.log(validation);
-    res.status(200).json({ succeed: false, inputErrors: validation });
+router.get('/regKey', (req, res) => {
+  const { key } = req.query;
+  if (key && key.length > 0 && key.length <= 128) {
+    rest.restGetCall(() => db.checkRegKey(key), req, res);
   } else {
-    // TODO itt elore kell tudjuk az eventId-t
-    const eventId = Number.parseInt(data.regCode[0], 10);
-    db.checkExistence('username', 'Users', data.username, true, {
-      username: 'This username is already taken.',
-    })
-      .then(() => db.checkExistence('email', 'Persons', data.email, true, {
-        email: 'This email address is already registered.',
-      }, eventId))
-      .then(() => db.checkExistence('phone', 'Persons', data.phone, true, {
-        phone: 'This phone number is already registered.',
-      }, eventId))
-      .then(() => db.checkExistence('cnp', 'Persons', data.cnp, true, {
-        cnp: 'This CNP is already registered.',
-      }, eventId))
-      .then(() => db.checkExistence('id', 'ShirtTypes', data.shirtType, false, {
-        shirtType: 'Invalid shirt type.',
-      }))
-      .then(() => db.checkExistence('id', 'ShirtSizes', data.shirtSize, false, {
-        shirtType: 'Invalid shirt size.',
-      }))
-      .then(() => {
-        data.passwordData = passwordUtils.hashPassword(data.password);
-        db.insertPersonUser({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phone: data.phone,
-          email: data.email,
-          cnp: data.cnp,
-          // TODO itt is majd a jo eventId-t kell visszaadni
-          eventId,
-          username: data.username,
-          pwdHash: data.passwordData.hash,
-          pwdSalt: data.passwordData.salt,
-          pwdIterations: data.passwordData.iterations,
-          shirtTypeId: data.shirtType,
-          shirtSizeId: data.shirtSize,
-          postId: 2,
-          roleId: 4,
-        }).then(() => {
-          responses.succeed(res);
-        }).catch((error) => {
-          console.log(error.message);
-          responses.internalServerError(res);
-        });
-      })
-      .catch((error) => {
-        if (error instanceof Error) {
-          console.log(error.message);
-          responses.internalServerError(res);
+    responses.badRequest(res);
+  }
+});
+
+router.put('/signup', (req, res) => {
+  const regKey = req.query.key;
+  const data = JSON.parse(req.body);
+  if (regKey && regKey.length > 0 && regKey.length <= 128) {
+    db.findRegKeyByKey(regKey).then((result) => {
+      if (result.length > 0) {
+        const [keyData] = result;
+        const {
+          id, postId, roleId, eventId, singleUse,
+        } = keyData;
+
+        const validation = validate(data, signupConstraints, { fullMessages: false });
+        if (validation) {
+          Object.entries(validation).forEach(([key, value]) => { [validation[key]] = value; });
+          res.status(200).json({ succeed: false, inputErrors: validation });
         } else {
-          responses.inputErrors(res, error);
+          db.checkExistence('username', 'Users', data.username, true, {
+            username: 'This username is already taken.',
+          })
+            .then(() => db.checkExistence('email', 'Persons', data.email, true, {
+              email: 'This email address is already registered.',
+            }, eventId))
+            .then(() => db.checkExistence('phone', 'Persons', data.phone, true, {
+              phone: 'This phone number is already registered.',
+            }, eventId))
+            .then(() => db.checkExistence('cnp', 'Persons', data.cnp, true, {
+              cnp: 'This CNP is already registered.',
+            }, eventId))
+            .then(() => db.checkExistence('id', 'ShirtTypes', data.shirtType, false, {
+              shirtType: 'Invalid shirt type.',
+            }))
+            .then(() => db.checkExistence('id', 'ShirtSizes', data.shirtSize, false, {
+              shirtType: 'Invalid shirt size.',
+            }))
+            .then(() => {
+              data.passwordData = passwordUtils.hashPassword(data.password);
+              db.insertPersonUser({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone,
+                email: data.email,
+                cnp: data.cnp,
+                eventId,
+                username: data.username,
+                pwdHash: data.passwordData.hash,
+                pwdSalt: data.passwordData.salt,
+                pwdIterations: data.passwordData.iterations,
+                shirtTypeId: data.shirtType,
+                shirtSizeId: data.shirtSize,
+                postId,
+                roleId,
+                regKeyId: id,
+                singleUse,
+              }).then(() => {
+                responses.succeed(res);
+              }).catch((error) => {
+                console.log(error.message);
+                responses.internalServerError(res);
+              });
+            })
+            .catch((error) => {
+              if (error instanceof Error) {
+                console.log(error.message);
+                responses.internalServerError(res);
+              } else {
+                responses.inputErrors(res, error);
+              }
+            });
         }
-      });
+      } else {
+        responses.badRequest(res);
+      }
+    });
+  } else {
+    responses.badRequest(res);
   }
 });
 
@@ -189,8 +212,17 @@ router.get('/scores', auth.authorize(PERM_SCORE_TABLE_ACCESS), (req, res) => {
   rest.restGetCall(() => db.findAllScores(req.session.eventId), req, res);
 });
 
+router.get('/posts', auth.authorize(), (req, res) => {
+  rest.restGetCall(() => db.findAllPosts(), req, res);
+});
+
+router.get('/roles', auth.authorize(), (req, res) => {
+  rest.restGetCall(() => db.findAllRoles(), req, res);
+});
+
 router.use('/teams', teamsRouter);
 router.use('/players', playersRouter);
 router.use('/games', gamesRouter);
-
+router.use('/invitations', invitationsRouter);
+router.use('/events', eventsRouter);
 module.exports = router;

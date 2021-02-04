@@ -1,9 +1,12 @@
+-- C:\Program Files\MySQL\MySQL Server 8.0\bin>mysqldump.exe -e -u devUser -p hdn -h 127.0.0.1 > C:\backup.sql
+
 drop database if exists hdn;
 create database if not exists hdn;
 use hdn;
 
 drop table if exists Players;
 drop table if exists Sessions;
+drop table if exists RegKeys;
 drop table if exists Users;
 drop table if exists Persons;
 drop table if exists ShirtTypes;
@@ -16,7 +19,7 @@ drop table if exists Teams;
 
 create table if not exists Events (
 	id int auto_increment,
-    name nvarchar(32) not null,
+    name nvarchar(16) not null,
     firstDay date not null,
     lastDay date not null,
     
@@ -24,7 +27,6 @@ create table if not exists Events (
     constraint UN_Events_name unique (name),
     constraint CH_Events_date check (firstDay < lastDay and datediff(lastDay, firstDay) < 10)
 );
-    
 
 create table if not exists Persons (
 	id int auto_increment,
@@ -114,6 +116,28 @@ create table if not exists Users (
     constraint FK_Users_ShirtSizes foreign key (shirtSizeId) references ShirtSizes(id),
     constraint FK_Users_Posts foreign key (postId) references Posts(id),
     constraint FK_Users_Roles foreign key (roleId) references Roles(id)
+);
+
+create table if not exists RegKeys (
+	id int auto_increment,
+    name nvarchar(16) not null,
+    regKey nvarchar(128) not null,
+    userId int not null,
+    postId int not null,
+    roleId int not null,
+    eventId int not null,
+    singleUse bit not null,
+    used int not null default 0,
+    active bit not null default 1,
+    
+    constraint PK_RegKeys primary key (id),
+    constraint UN_RegKeys_name unique (name),
+    constraint UN_RegKeys_regKey unique (regKey),
+    constraint FK_RegKeys_Users foreign key (userId) references Users(id),
+    constraint FK_RegKeys_Posts foreign key (postId) references Posts(id),
+    constraint FK_RegKeys_Roles foreign key (roleId) references Roles(id),
+    constraint FK_RegKeys_Events foreign key (eventId) references Events(id),
+    constraint CH_RegKeys_uses check (used >= 0)
 );
 
 create table if not exists Teams (
